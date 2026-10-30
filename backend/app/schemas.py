@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
+from typing import Self
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 
 class EntryIn(BaseModel):
@@ -30,6 +31,33 @@ class ClinicianOut(BaseModel):
 
 class TelemetryEvent(BaseModel):
     event: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
+
+
+class ShareIn(BaseModel):
+    clinician_id: int
+    from_date: date
+    to_date: date
+    include_notes: bool = False
+
+    @model_validator(mode="after")
+    def period_is_ordered(self) -> Self:
+        if self.from_date > self.to_date:
+            raise ValueError("from_date must not be after to_date")
+        return self
+
+
+class ShareOut(BaseModel):
+    """As in API.md. consent_version is kept for audits (O.Cons_3), not returned."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    clinician_id: int
+    from_date: date
+    to_date: date
+    include_notes: bool
+    created_at: datetime
+    revoked_at: datetime | None
 
 
 class Me(BaseModel):
