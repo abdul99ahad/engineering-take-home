@@ -21,13 +21,20 @@ class ShareLike(Protocol):
     revoked_at: datetime | None
 
 
+def true_recorded_at(recorded_at: datetime, source: str, tz: ZoneInfo) -> datetime:
+    """The real moment the entry was recorded, in UTC."""
+    if source == "app-v1":
+        # App v1 sent local wall-clock time without a zone and it was stored as if it were UTC:
+        # read the stored clock time as the patient's local time. In the hour that repeats when
+        # summer time ends, the earlier of the two moments is used.
+        local = recorded_at.astimezone(UTC).replace(tzinfo=tz)
+        return local.astimezone(UTC)
+    return recorded_at.astimezone(UTC)
+
+
 def local_day(recorded_at: datetime, source: str, tz: ZoneInfo) -> date:
     """The day the entry belongs to in the patient's own diary."""
-    if source == "app-v1":
-        # App v1 sent local wall-clock time without a zone and it was stored as if it were UTC,
-        # so the stored UTC date already is the patient's local date.
-        return recorded_at.astimezone(UTC).date()
-    return recorded_at.astimezone(tz).date()
+    return true_recorded_at(recorded_at, source, tz).astimezone(tz).date()
 
 
 def visible_entries[E: EntryLike](

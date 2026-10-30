@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from app.sharing import local_day, visible_entries
+from app.sharing import local_day, true_recorded_at, visible_entries
 
 BERLIN = ZoneInfo("Europe/Berlin")  # UTC+2 in early October 2026
 
@@ -33,6 +33,26 @@ def test_app_v1_entry_is_already_local_time() -> None:
     assert local_day(datetime(2026, 3, 14, 23, 50, tzinfo=UTC), "app-v1", BERLIN) == date(
         2026, 3, 14
     )
+
+
+def test_app_v1_time_is_corrected_to_the_real_moment() -> None:
+    # 23:50 on 14 March in Berlin (UTC+1) really was 22:50 UTC.
+    assert true_recorded_at(datetime(2026, 3, 14, 23, 50, tzinfo=UTC), "app-v1", BERLIN) == (
+        datetime(2026, 3, 14, 22, 50, tzinfo=UTC)
+    )
+
+
+def test_app_v1_time_correction_follows_summer_time() -> None:
+    # 10:00 on 1 April in Berlin (UTC+2) really was 08:00 UTC.
+    assert true_recorded_at(datetime(2026, 4, 1, 10, 0, tzinfo=UTC), "app-v1", BERLIN) == (
+        datetime(2026, 4, 1, 8, 0, tzinfo=UTC)
+    )
+
+
+def test_app_v2_time_is_already_correct() -> None:
+    recorded_at = datetime(2026, 10, 1, 22, 30, tzinfo=UTC)
+
+    assert true_recorded_at(recorded_at, "app-v2", BERLIN) == recorded_at
 
 
 def test_local_day_across_dst_change() -> None:

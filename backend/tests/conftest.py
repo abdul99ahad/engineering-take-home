@@ -1,4 +1,5 @@
-from collections.abc import Iterator
+import logging
+from collections.abc import Callable, Iterator
 
 import pytest
 from alembic import command
@@ -31,3 +32,10 @@ def clean_db(migrated_db: None) -> None:
 def client() -> Iterator[TestClient]:
     with TestClient(app) as client:
         yield client
+
+
+@pytest.fixture
+def app_logs(caplog: pytest.LogCaptureFixture) -> Callable[[], str]:
+    """The API's own log output; the test client's request logs are not the API's."""
+    caplog.set_level(logging.INFO, logger="diary.requests")
+    return lambda: "\n".join(r.getMessage() for r in caplog.records if r.name == "diary.requests")

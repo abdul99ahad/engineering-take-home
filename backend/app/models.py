@@ -85,3 +85,5 @@ class AccessLog(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     entry_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer))
+    # The entries whose note the doctor saw: notes are private unless the patient included them.
+    note_entry_ids: Mapped[list[int]] = mapped_column(ARRAY(Integer), server_default="{}")

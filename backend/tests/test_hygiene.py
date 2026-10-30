@@ -19,13 +19,6 @@ ENTRY = {
 
 
 @pytest.fixture
-def app_logs(caplog: pytest.LogCaptureFixture) -> Callable[[], str]:
-    """The API's own log output; the test client's request logs are not the API's."""
-    caplog.set_level(logging.INFO, logger="diary.requests")
-    return lambda: "\n".join(r.getMessage() for r in caplog.records if r.name == "diary.requests")
-
-
-@pytest.fixture
 def broken_client() -> Iterator[TestClient]:
     """A client whose database fails with a message that contains health data, like SQLAlchemy's."""
 

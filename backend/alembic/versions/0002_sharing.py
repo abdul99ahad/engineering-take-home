@@ -56,6 +56,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("entry_ids", postgresql.ARRAY(sa.Integer()), nullable=False),
+        sa.Column(
+            "note_entry_ids",
+            postgresql.ARRAY(sa.Integer()),
+            server_default="{}",
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["clinician_id"], ["clinicians.id"]),
         sa.PrimaryKeyConstraint("id"),
     )

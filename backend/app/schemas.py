@@ -60,6 +60,23 @@ class ShareOut(BaseModel):
     revoked_at: datetime | None
 
 
+class ClinicianEntryOut(BaseModel):
+    """What a doctor sees of an entry. Separate from EntryOut, which must never change."""
+
+    id: int
+    recorded_at: datetime
+    mood: int
+    symptoms: list[str]
+    note: str | None
+
+
+class AccessLogOut(BaseModel):
+    clinician_id: int
+    clinician_name: str
+    accessed_at: datetime
+    entry_ids: list[int]
+
+
 class Me(BaseModel):
     role: str
     id: int
