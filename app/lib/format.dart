@@ -36,3 +36,23 @@ String formatDayHeading(DateTime day, DateTime today) {
   return '${_weekdays[day.weekday - 1].substring(0, 3)} ${day.day} '
       '${_months[day.month - 1].substring(0, 3)}';
 }
+
+String _two(int n) => n.toString().padLeft(2, '0');
+
+/// "2026-10-01": the calendar date the API expects.
+String isoDate(DateTime day) => '${day.year}-${_two(day.month)}-${_two(day.day)}';
+
+/// "24 to 30 October", "28 September to 4 October" or "5 October".
+String formatDateRange(DateTime from, DateTime to) {
+  final end = '${to.day} ${_months[to.month - 1]}';
+  if (dayOf(from) == dayOf(to)) return end;
+  if (from.year == to.year && from.month == to.month) return '${from.day} to $end';
+  return '${from.day} ${_months[from.month - 1]} to $end';
+}
+
+/// "Thu 8 Oct, 12:03", in local time.
+String formatShortDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${_weekdays[local.weekday - 1].substring(0, 3)} ${local.day} '
+      '${_months[local.month - 1].substring(0, 3)}, ${formatTime(local)}';
+}

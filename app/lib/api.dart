@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import 'format.dart';
 import 'models.dart';
 
 /// Talks to the diary API. In the browser the API is served under /api on the
@@ -36,6 +37,48 @@ class ApiClient {
       body: jsonEncode(entry.toJson()),
     );
     return DiaryEntry.fromJson(_decode(response, 201));
+  }
+
+  Future<List<Clinician>> listClinicians() async {
+    final response = await _client.get(baseUrl.resolve('clinicians'), headers: _headers);
+    final List<dynamic> json = _decode(response, 200);
+    return json.map((c) => Clinician.fromJson(c as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Share>> listShares() async {
+    final response = await _client.get(baseUrl.resolve('shares'), headers: _headers);
+    final List<dynamic> json = _decode(response, 200);
+    return json.map((s) => Share.fromJson(s as Map<String, dynamic>)).toList();
+  }
+
+  Future<Share> createShare({
+    required int clinicianId,
+    required DateTime from,
+    required DateTime to,
+    required bool includeNotes,
+  }) async {
+    final response = await _client.post(
+      baseUrl.resolve('shares'),
+      headers: _headers,
+      body: jsonEncode({
+        'clinician_id': clinicianId,
+        'from_date': isoDate(from),
+        'to_date': isoDate(to),
+        'include_notes': includeNotes,
+      }),
+    );
+    return Share.fromJson(_decode(response, 201));
+  }
+
+  Future<Share> revokeShare(int id) async {
+    final response = await _client.post(baseUrl.resolve('shares/$id/revoke'), headers: _headers);
+    return Share.fromJson(_decode(response, 200));
+  }
+
+  Future<List<AccessRecord>> listAccessLog() async {
+    final response = await _client.get(baseUrl.resolve('access-log'), headers: _headers);
+    final List<dynamic> json = _decode(response, 200);
+    return json.map((r) => AccessRecord.fromJson(r as Map<String, dynamic>)).toList();
   }
 
   /// Counts a product event such as `entry_created` (only the name is sent). Failures are ignored:
