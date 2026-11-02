@@ -225,6 +225,7 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
+    width: double.infinity,
     margin: const EdgeInsets.only(bottom: Space.s),
     clipBehavior: Clip.antiAlias,
     decoration: const BoxDecoration(color: AppColors.surface, borderRadius: Radii.card),
