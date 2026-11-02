@@ -348,6 +348,38 @@ alert two minutes later as designed. The morning-only latency alert stayed norma
 - The share form broke DESIGN.md in four places until I asked for a rule-by-rule check (29).
 - Its assumptions list included things BRIEF.md and API.md already define. Trimmed (36).
 
+## How I'd work in a production team
+
+This take-home was built straight on `main`. In a team, with patients' health data, I would change
+how the work reaches production:
+
+- **A branch per ticket, never work on `main`.** Every feature or bug gets its own branch named
+  after the ticket (for example `feat/KRA-123-diary-sharing`), and `main` is protected: no direct
+  pushes, and a merge needs green CI and at least one approving review.
+- **One commit per change.** Each commit does one thing and keeps the tests green, so it can be
+  reviewed, reverted or bisected on its own.
+- **Small PRs.** Under about 1,000 changed lines, with a short description (what changed, why, how
+  to test it) and screenshots for any UI change. This feature would be several PRs: logging fix,
+  sharing rules, migration, patient endpoints, doctor read, app screens, monitoring.
+- **Rebase, don't merge.** Branches are rebased on `main` before merging, so the history stays
+  linear and every commit on `main` is one that was reviewed.
+- **CI on every PR.** Backend and app tests, linting and type checks, a migration up-and-down
+  check, and the frozen-contract snapshot for `/entries`, `/me` and API.md (see Next steps).
+- **Migrations ship apart from code.** Expand first, deploy, then contract. Old app versions
+  (v2.3) and the running API must keep working at every step, and a shipped migration is never
+  edited.
+- **Release behind a feature flag.** Sharing would go out switched off, then to staff, one clinic
+  and everyone, with a kill switch. The backend can roll back, but installed apps can't, so the
+  API stays compatible with every app version still in use.
+- **Privacy and security sign-off before release.** Selin reviews the consent text, the data shared
+  and the audit retention. Dependency and secret scanning run in CI.
+- **Staging uses made-up data only.** No production diary data in staging, test fixtures,
+  screenshots or AI prompts.
+- **Contract tests with the portal team**, run in both pipelines, so a change on either side that
+  breaks API.md fails before release, not in their tests.
+- **Versioned releases.** A tag per release, with a changelog generated from the Conventional
+  Commits messages.
+
 ## Known gaps
 
 An independent code review of the backend found these. I fixed only what I had found myself; the
