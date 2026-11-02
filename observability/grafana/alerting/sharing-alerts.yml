@@ -1,0 +1,110 @@
+# Alert rules for diary sharing, provisioned from file. severity=page wakes someone up;
+# severity=morning goes to the team channel for the next working day. Contact points and
+# routing are environment config and not part of this repo.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: diary-sharing
+    folder: Diary
+    interval: 1m
+    rules:
+      - uid: sharing-audit-failed
+        title: A doctor's read could not be recorded
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              # Failures in the last 5 minutes, plus a series that has just appeared: Prometheus
+              # creates the series at its first failure, already at 1, and increase() alone
+              # would not see that first failure after a restart.
+              expr: >-
+                (sum(increase(clinician_reads_total{outcome="audit_failed"}[5m])) or vector(0))
+                + (count(clinician_reads_total{outcome="audit_failed"}
+                  unless clinician_reads_total{outcome="audit_failed"} offset 5m) or vector(0))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: page
+        annotations:
+          summary: Doctor reads are failing because the access log can't be written (O.Mon_1).
+          description: >-
+            No diary data was disclosed: the read was rolled back and the doctor got an error.
+            Check database health and the access_log table, then the API logs for
+            "Unhandled ... on /clinician/patients/{patient_id}/entries".
+
+      - uid: sharing-read-failures
+        title: Doctors can't open shared diaries
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                sum(rate(clinician_reads_total{outcome=~"error|audit_failed"}[5m]))
+                / sum(rate(clinician_reads_total[5m]))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0.05] }
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: page
+        annotations:
+          summary: More than 5% of doctors' diary reads fail.
+          description: >-
+            Clinics will call support. Open the "Diary sharing" dashboard: read outcomes, then
+            latency, then the API logs for that route.
+
+      - uid: sharing-read-slow
+        title: Doctors' diary reads are slow
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1800, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                histogram_quantile(0.95, sum by (le) (rate(
+                http_request_duration_seconds_bucket{route="/clinician/patients/{patient_id}/entries"}[15m])))
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [1] }
+        for: 15m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: morning
+        annotations:
+          summary: 95% of doctors' diary reads take longer than 1 second.
+          description: >-
+            Not urgent, but it gets worse as diaries grow: the read loads the whole diary and
+            filters in Python. Next step: filter in SQL.
